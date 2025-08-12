@@ -1,0 +1,9 @@
+{
+    "redirects": [
+        {
+            "source": "/((?!api/shorten$).*)",
+            "destination": "https://url-shortener-api.onrender.com/:1",
+            "permanent": false
+        }
+    ]
+}

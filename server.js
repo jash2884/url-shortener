@@ -32,9 +32,8 @@ app.post("/api/shorten", async (req, res) => {
     const result = await db.query(query, [shortCode, longUrl]);
 
     // Construct the full short URL to return to the user
-    const shortUrl = `${req.protocol}://${req.get("host")}/${
-      result.rows[0].short_code
-    }`;
+    const appDomain = process.env.APP_DOMAIN || `http://localhost:${PORT}`;
+    const shortUrl = `${appDomain}/${result.rows[0].short_code}`;
 
     res.status(201).json({ shortUrl });
   } catch (err) {
