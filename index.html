@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>URL Shortener</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #6d28d9;
+        --background-start: #f5f3ff;
+        --background-end: #e0e7ff;
+        --card-background: #ffffff;
+        --text-color: #1f2937;
+        --subtle-text: #6b7280;
+        --border-color: #d1d5db;
+        --error-color: #dc2626;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background: linear-gradient(
+          135deg,
+          var(--background-start),
+          var(--background-end)
+        );
+        color: var(--text-color);
+      }
+
+      .container {
+        width: 90%;
+        max-width: 480px;
+        text-align: center;
+        background: var(--card-background);
+        padding: 40px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transition: transform 0.3s ease;
+      }
+
+      h1 {
+        font-weight: 700;
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        color: var(--subtle-text);
+        margin-bottom: 24px;
+      }
+
+      #shorten-form {
+        display: flex;
+        gap: 8px;
+      }
+
+      input[type="url"] {
+        flex-grow: 1;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      input[type="url"]:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
+      }
+
+      button {
+        padding: 12px 24px;
+        border: none;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #5b21b6;
+      }
+
+      button:disabled {
+        background-color: #a78bfa;
+        cursor: not-allowed;
+      }
+
+      /* NEW: Loading spinner animation */
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      #result {
+        margin-top: 24px;
+        padding: 16px;
+        border-radius: 8px;
+        word-wrap: break-word;
+        display: none;
+        text-align: left;
+        animation: fadeIn 0.5s ease-out; /* NEW: Fade-in animation */
+      }
+
+      #result.success {
+        background: var(--background-start);
+      }
+
+      #result.error {
+        background: #fee2e2;
+        color: var(--error-color);
+        font-weight: 500;
+      }
+
+      .result-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* NEW: Styles for the copy button */
+      .copy-btn {
+        background: none;
+        border: 1px solid var(--border-color);
+        color: var(--subtle-text);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 500;
+      }
+
+      .copy-btn:hover {
+        background-color: var(--background-start);
+        border-color: #c7d2fe;
+      }
+
+      #result-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>URL Shortener</h1>
+      <p class="subtitle">Enter a long URL to create a short and sweet link.</p>
+      <form id="shorten-form">
+        <input
+          type="url"
+          id="longUrlInput"
+          placeholder="https://example.com"
+          required
+        />
+        <button type="submit" id="submit-btn">
+          <span id="button-text">Shorten</span>
+          <div class="spinner" id="spinner" style="display: none"></div>
+        </button>
+      </form>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      const form = document.getElementById("shorten-form");
+      const longUrlInput = document.getElementById("longUrlInput");
+      const resultDiv = document.getElementById("result");
+      const submitBtn = document.getElementById("submit-btn");
+      const buttonText = document.getElementById("button-text");
+      const spinner = document.getElementById("spinner");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        // NEW: Show loading state
+        submitBtn.disabled = true;
+        buttonText.textContent = "Working...";
+        spinner.style.display = "block";
+
+        resultDiv.style.display = "none"; // Hide previous results
+
+        const longUrl = longUrlInput.value;
+        const apiUrl = "http://localhost:3000/api/shorten";
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ longUrl: longUrl }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Network response was not ok");
+          }
+
+          // Display success result
+          resultDiv.className = "success";
+          resultDiv.innerHTML = `
+                    <div class="result-content">
+                        <a id="result-link" href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                `;
+          resultDiv.style.display = "block";
+
+          // NEW: Add event listener for the new copy button
+          document.querySelector(".copy-btn").addEventListener("click", (e) => {
+            navigator.clipboard.writeText(data.shortUrl);
+            e.target.textContent = "Copied!";
+            setTimeout(() => {
+              e.target.textContent = "Copy";
+            }, 2000);
+          });
+        } catch (error) {
+          console.error("There was a problem:", error);
+          // Display error result
+          resultDiv.className = "error";
+          resultDiv.textContent = `Error: ${error.message}`;
+          resultDiv.style.display = "block";
+        } finally {
+          // NEW: Revert button to normal state
+          submitBtn.disabled = false;
+          buttonText.textContent = "Shorten";
+          spinner.style.display = "none";
+        }
+      });
+    </script>
+  </body>
+</html>
